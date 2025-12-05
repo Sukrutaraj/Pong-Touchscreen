@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <title>Pong Touch</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="menu">
+    <h1>PONG</h1>
+
+    <label>Spelare 1 namn:</label>
+    <input id="p1name" type="text" placeholder="Player 1" />
+
+    <label>Spelare 2 namn:</label>
+    <input id="p2name" type="text" placeholder="Player 2" />
+
+    <label>Välj färgtema:</label>
+    <select id="theme">
+        <option value="classic">Classic (vit)</option>
+        <option value="neon">Neon</option>
+        <option value="blue">Blå</option>
+        <option value="pink">Rosa</option>
+        <option value="matrix">Matrix</option>
+    </select>
+
+    <label>Svårighetsgrad:</label>
+    <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Intermediate</option>
+        <option value="hard">Hard</option>
+    </select>
+
+    <button id="startBtn">Starta spelet</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script src="game.js"></script>
+
+</body>
+</html>
