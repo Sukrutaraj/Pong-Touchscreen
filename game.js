@@ -1,186 +1,183 @@
-// -------------------------
-// Mobilvänligt Pong Game
-// -------------------------
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Ljud
-const hitSound = new Audio("pingpong.mp3");
-const missSound = new Audio("miss.mp3");
-const gameOverSound = new Audio("gameover.mp3");
-
-// Variabler
-let p1 = { y: 0, score: 0, name: "Player 1" };
-let p2 = { y: 0, score: 0, name: "Player 2" };
-let ball = { x: 0, y: 0, vx: 0, vy: 0, size: 0 };
-let paddleWidth = 0;
-let paddleHeight = 0;
-
-let gameRunning = false;
-let themeColor = "white"; 
-let winScore = 10;
-let difficultyMultiplier = 1;
-
-// Anpassar spelet till skärmen
+let WIDTH, HEIGHT;
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    paddleHeight = canvas.height * 0.18;
-    paddleWidth = canvas.width * 0.02;
-    ball.size = canvas.width * 0.02;
-
-    p1.y = canvas.height / 2 - paddleHeight / 2;
-    p2.y = canvas.height / 2 - paddleHeight / 2;
+    WIDTH = window.innerWidth;
+    HEIGHT = window.innerHeight;
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
 }
+resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-// Starta spelet
-document.getElementById("startBtn").onclick = () => {
-    document.getElementById("menu").style.display = "none";
-    canvas.style.display = "block";
+// ---------------------
+// SPELVARIABLER
+// ---------------------
+let p1Name = "";
+let p2Name = "";
+let themeColor = "#4ade80";
+let difficulty = "easy";
+let gameRunning = false;
 
-    p1.name = document.getElementById("p1name").value || "Player 1";
-    p2.name = document.getElementById("p2name").value || "Player 2";
+let paddleWidth = 20;
+let paddleHeight = 120;
 
-    let theme = document.getElementById("theme").value;
-    let difficulty = document.getElementById("difficulty").value;
+let p1 = { x: 20, y: 0, score: 0 };
+let p2 = { x: 0, y: 0, score: 0 };
 
-    themeColor = {
-        classic: "white",
-        neon: "#39FF14",
-        blue: "#4db8ff",
-        pink: "#ff4da6",
-        matrix: "#00ff00"
-    }[theme];
+let ball = { x: 0, y: 0, radius: 15, dx: 6, dy: 6 };
 
-    difficultyMultiplier = {
-        easy: 1,
-        medium: 1.4,
-        hard: 1.9
-    }[difficulty];
+// ---------------------
+// Ljud
+// ---------------------
+let soundPing = new Audio("pingpong.wav");
+let soundMiss = new Audio("miss.wav");
+let soundGameOver = new Audio("gameover.wav");
 
-    resizeCanvas();
-    startRound();
-};
+// ---------------------
+// TOUCH Kontroll
+// ---------------------
+let touchP1 = null;
+let touchP2 = null;
 
-// Ny bollrunda
-function startRound() {
-    gameRunning = true;
-    ball.x = canvas.width / 2;
-    ball.y = canvas.height / 2;
-
-    let speed = canvas.width * 0.004 * difficultyMultiplier;
-    ball.vx = Math.random() > 0.5 ? speed : -speed;
-    ball.vy = (Math.random() - 0.5) * speed;
-}
-
-// Rita allt
-function draw() {
-    if (!gameRunning) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.strokeStyle = themeColor;
-    ctx.fillStyle = themeColor;
-
-    ctx.beginPath();
-    ctx.setLineDash([10, 15]);
-    ctx.moveTo(canvas.width / 2, 0);
-    ctx.lineTo(canvas.width / 2, canvas.height);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.fillRect(30, p1.y, paddleWidth, paddleHeight);
-    ctx.fillRect(canvas.width - 30 - paddleWidth, p2.y, paddleWidth, paddleHeight);
-
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.size, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.font = `${canvas.width * 0.06}px Arial`;
-    ctx.fillText(p1.score, canvas.width * 0.35, canvas.height * 0.15);
-    ctx.fillText(p2.score, canvas.width * 0.60, canvas.height * 0.15);
-}
-
-// Touch-kontroller
-canvas.addEventListener("touchstart", handleTouch);
-canvas.addEventListener("touchmove", handleTouch);
-
-function handleTouch(e) {
-    e.preventDefault();
-
-    for (let t of e.touches) {
-        if (t.clientX < canvas.width / 2) {
-            if (t.clientY < canvas.height / 2) p1.y -= 40;
-            else p1.y += 40;
-        } else {
-            if (t.clientY < canvas.height / 2) p2.y -= 40;
-            else p2.y += 40;
-        }
-    }
-}
-
-// Mussa för dator
-document.addEventListener("mousemove", (e) => {
-    if (!gameRunning) return;
-    if (e.clientX < canvas.width / 2) p1.y = e.clientY - paddleHeight / 2;
-    else p2.y = e.clientY - paddleHeight / 2;
+canvas.addEventListener("touchstart", e => {
+    [...e.changedTouches].forEach(t => {
+        if (t.clientX < WIDTH / 2) touchP1 = t;
+        else touchP2 = t;
+    });
 });
 
-// Uppdatera spelet
-function update() {
+canvas.addEventListener("touchmove", e => {
+    e.preventDefault();
+    [...e.changedTouches].forEach(t => {
+        if (touchP1 && t.identifier === touchP1.identifier) {
+            p1.y = t.clientY - paddleHeight / 2;
+        }
+        if (touchP2 && t.identifier === touchP2.identifier) {
+            p2.y = t.clientY - paddleHeight / 2;
+        }
+    });
+}, { passive: false });
+
+canvas.addEventListener("touchend", e => {
+    [...e.changedTouches].forEach(t => {
+        if (touchP1 && t.identifier === touchP1.identifier) touchP1 = null;
+        if (touchP2 && t.identifier === touchP2.identifier) touchP2 = null;
+    });
+});
+
+// ---------------------
+// Starta spelet
+// ---------------------
+function startGame() {
+    p1Name = document.getElementById("p1name").value || "Player 1";
+    p2Name = document.getElementById("p2name").value || "Player 2";
+
+    difficulty = document.getElementById("difficulty").value;
+
+    let colors = document.querySelectorAll(".colorBox");
+    colors.forEach(c => c.addEventListener("click", () => {
+        themeColor = c.dataset.color;
+    }));
+
+    document.getElementById("startScreen").style.display = "none";
+
+    resetPositions();
+    gameRunning = true;
+    gameLoop();
+}
+
+// ---------------------
+function resetPositions() {
+    p1.y = HEIGHT / 2 - paddleHeight / 2;
+    p2.y = HEIGHT / 2 - paddleHeight / 2;
+    p2.x = WIDTH - 40;
+
+    ball.x = WIDTH / 2;
+    ball.y = HEIGHT / 2;
+
+    let speed = difficulty === "easy" ? 6 :
+                difficulty === "medium" ? 8 : 11;
+
+    ball.dx = speed * (Math.random() > 0.5 ? 1 : -1);
+    ball.dy = speed * (Math.random() > 0.5 ? 1 : -1);
+}
+
+// ---------------------
+// GAME LOOP
+// ---------------------
+function gameLoop() {
     if (!gameRunning) return;
 
-    ball.x += ball.vx;
-    ball.y += ball.vy;
+    update();
+    draw();
 
-    if (ball.y < 0 || ball.y > canvas.height) ball.vy *= -1;
+    requestAnimationFrame(gameLoop);
+}
 
-    // Vänster paddel
-    if (ball.x - ball.size < 30 + paddleWidth &&
+function update() {
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    // Väggar
+    if (ball.y < 0 || ball.y > HEIGHT) ball.dy *= -1;
+
+    // Paddelträffar
+    if (
+        ball.x - ball.radius < p1.x + paddleWidth &&
         ball.y > p1.y &&
-        ball.y < p1.y + paddleHeight) {
-        ball.vx *= -1;
-        hitSound.play();
+        ball.y < p1.y + paddleHeight
+    ) {
+        ball.dx *= -1;
+        soundPing.play();
     }
 
-    // Höger paddel
-    if (ball.x + ball.size > canvas.width - 30 - paddleWidth &&
+    if (
+        ball.x + ball.radius > p2.x &&
         ball.y > p2.y &&
-        ball.y < p2.y + paddleHeight) {
-        ball.vx *= -1;
-        hitSound.play();
+        ball.y < p2.y + paddleHeight
+    ) {
+        ball.dx *= -1;
+        soundPing.play();
     }
 
-    // Miss vänster
+    // MISS
     if (ball.x < 0) {
         p2.score++;
-        missSound.play();
-        checkEnd();
-        startRound();
+        soundMiss.play();
+        resetPositions();
     }
 
-    // Miss höger
-    if (ball.x > canvas.width) {
+    if (ball.x > WIDTH) {
         p1.score++;
-        missSound.play();
-        checkEnd();
-        startRound();
-    }
-
-    draw();
-    requestAnimationFrame(update);
-}
-
-function checkEnd() {
-    if (p1.score >= winScore || p2.score >= winScore) {
-        gameRunning = false;
-        gameOverSound.play();
-        alert("Game Over! Tryck OK för att starta om.");
-        location.reload();
+        soundMiss.play();
+        resetPositions();
     }
 }
 
-update();
+function draw() {
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+    // mittlinje
+    ctx.fillStyle = "#333";
+    for (let y = 0; y < HEIGHT; y += 40) {
+        ctx.fillRect(WIDTH / 2 - 3, y, 6, 20);
+    }
+
+    // paddlar
+    ctx.fillStyle = themeColor;
+    ctx.fillRect(p1.x, p1.y, paddleWidth, paddleHeight);
+    ctx.fillRect(p2.x, p2.y, paddleWidth, paddleHeight);
+
+    // boll (rund!)
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // poäng
+    ctx.fillStyle = "white";
+    ctx.font = "28px Arial";
+    ctx.fillText(`${p1Name}: ${p1.score}`, 40, 40);
+    ctx.fillText(`${p2Name}: ${p2.score}`, WIDTH - 200, 40);
+}
